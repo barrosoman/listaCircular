@@ -6,10 +6,12 @@
 ## Dados
 Implemente uma lista circular com tamanho fixo (40 elementos) em que são inseridas e "removidas" palavras. Os elementos armazenados devem ter a seguinte estrutura:
 
+```c
 typedef struct no {
      char pal[20];
      int urg;
      struct no *prox; } Elem;
+```
 
 A entrada para seu programa é um arquivo, chamado pacotes.dat, contendo K linhas contendo:
     intA string intB
