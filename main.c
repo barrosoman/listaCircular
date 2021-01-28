@@ -2,7 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_NOS 40
+#define MAX_ELEMS 40
+
+enum comandos{
+    INSERT,
+    DELETE,
+};
 
 typedef struct no {
     char pal[20];
@@ -10,100 +15,141 @@ typedef struct no {
     struct no *prox;
 } Elem;
 
-Elem *readPointer;
-Elem *writePointer;
+typedef struct info {
+    char pal[32];
+    int cmd,
+        urg;
+} Info_t;
 
-int readFile(Elem **lista);
+Elem *readPointer,
+     *writePointer;
+
+Info_t getLineInfo(char *line);
+void readFile(Elem **lista,FILE **arquivos);
 void initLista(Elem **lista);
-void insereListaCircular(Elem **lista);
-void debugPrint();
-void printLista(Elem **lista);
-
+void initElem(Elem **lista);
+void readJump(int urg);
+void writeToElem(Info_t info);
+void readElem(Info_t info, FILE *lidosF);
+void exitOperations(Elem **lista, FILE **arquivos);
+void printElemFile(FILE *lidosF);
 
 int main() {
     Elem *lista = NULL;
     initLista(&lista);
     writePointer = readPointer = lista;
 
-    readFile(&lista);
+    FILE *arquivos[] = {
+        fopen( "pacotes.dat", "r" ),
+        fopen( "lidos.dat", "w" ),
+    };
 
+    readFile(&lista, arquivos);
 
-    /* debugPrint(); */
-
-    /* for( int i=0; i<10; i++) { */
-    /*     insereListaCircular(&lista, i); */
-    /* } */
-
-
+    exitOperations(&lista, arquivos);
 }
 
-int readFile(Elem **lista) {
-    char line[40], pal[20];
-    int cmd, urg;
+void readFile(Elem **lista, FILE **arquivos) {
+    Info_t lineInfo;
 
-    FILE *fp = fopen( "pacotes.dat", "r" );
-    FILE *lidos = fopen( "lidos.dat", "w" );
+    char line[32];
+    FILE *pacotesF = arquivos[0];
+    FILE *lidosF = arquivos[1];
 
-    while ( fgets(line, sizeof(line), fp) ) {
-        sscanf(line, "%d %s %d", &cmd, pal, &urg);
-        if ( strcmp(pal, "NULL") == 0 ) {
-            return 0;
+
+    while (1) {
+        fgets(line, sizeof(line), pacotesF);
+        lineInfo = getLineInfo(line);
+
+        if (strcmp(lineInfo.pal, "NULL") == 0 ) {
+            exit(0);
         }
 
-        if (cmd == 0) {
-            strcpy(writePointer->pal, pal);
-            writePointer->urg = urg;
-
-            writePointer = writePointer->prox;
-        } else if (cmd == 1) {
-            fputs(pal, lidos);
-
-            readPointer = readPointer->prox;
-        } else {
-            printf("Comando errado");
-            return 1;
+        switch (lineInfo.cmd) {
+            case INSERT:
+                writeToElem(lineInfo);
+                break;
+            case DELETE:
+                readElem(lineInfo, lidosF);
+                break;
+            default:
+            printf("Comando errado\n");
+            exit(1);
         }
-        printLista(lista);
     }
-    fclose(fp);
-    return 0;
 }
 
-void insereListaCircular(Elem **lista){
-  Elem *no;
+void initElem(Elem **lista){
+  Elem *elem;
 
-  no = (Elem*) malloc(sizeof(Elem));
+  elem = (Elem*) malloc(sizeof(Elem));
 
   if(*lista == NULL){
-    no->prox = no;
+    elem->prox = elem;
   }else{
-    no->prox = (*lista)->prox;
-    (*lista)->prox = no;
+    elem->prox = (*lista)->prox;
+    (*lista)->prox = elem;
   }
 
-  *lista = no;
+  *lista = elem;
 }
 
 void initLista(Elem **lista) {
-    for( int i=0; i<40; i++) {
-        insereListaCircular(lista);
+    for( int i=0; i<MAX_ELEMS; i++) {
+        initElem(lista);
     }
 }
 
+Info_t getLineInfo(char *line) {
+    Info_t lineInfo;
+    sscanf(line, "%d %s %d",
+            &lineInfo.cmd,
+            lineInfo.pal,
+            &lineInfo.urg);
 
-void debugPrint() {
-    Elem *no = readPointer;
-    for (int i=0; i<10; i++) {
-        printf("%s %d", no->pal, no->urg);
-        no = no->prox;
+    return lineInfo;
+}
+
+void printElemFile(FILE *lidosF) {
+    fprintf(lidosF, "%s\n", readPointer->pal);
+}
+
+void writeToElem(Info_t info) {
+    strcpy(writePointer->pal, info.pal);
+    writePointer->urg = info.urg;
+
+    writePointer = writePointer->prox;
+}
+
+void readJump(int urg) {
+    for (int i=0; i<urg; i++) {
+        if (readPointer != writePointer) {
+            readPointer = readPointer->prox;
+        }
     }
 }
 
-void printLista(Elem **lista) {
-    Elem *aux = *lista;
+void readElem(Info_t info, FILE *lidosF) {
+    if (readPointer != writePointer) {
+        if (strcmp(info.pal, "PRTY") == 0) {
+            readJump(info.urg);
+        }
+        printElemFile(lidosF);
+        readJump(1);
+    }
+}
+
+void exitOperations(Elem **lista, FILE **arquivos) {
+    Elem *aux, *temp;
+
+    for (int i=0; i<sizeof(arquivos); i++) {
+        fclose(arquivos[i]);
+    }
+
+    aux = *lista;
     do {
-        printf("%s %d\n", aux->pal, aux->urg);
+        temp = aux;
         aux = aux->prox;
+        free(temp);
     } while( aux != *lista ) ;
-    putchar('\n');
 }
