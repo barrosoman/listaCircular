@@ -4,81 +4,128 @@
 
 #define MAX_ELEMS 40
 
+typedef char char32_t[32];
+
 enum comandos{
     INSERT,
     DELETE,
 };
 
+/* Estrutura do elemento da lista */
 typedef struct no {
-    char pal[20];
+    char32_t pal;
     int urg;
     struct no *prox;
 } Elem;
 
+/* Estrutura das informações obtidas de pacotes.dat */
 typedef struct info {
-    char pal[32];
+    char32_t pal;
     int cmd,
         urg;
 } Info_t;
 
+/* Ponteiros para inserção e remoção de dados na lista */
 Elem *readPointer,
      *writePointer;
 
+/* Funções de obtenção dos dados de um arquivo */
+int readFile(Elem **lista,FILE **arquivos);
 Info_t getLineInfo(char *line);
-void readFile(Elem **lista,FILE **arquivos);
+
+/* Função inicialização da lista */
 void initLista(Elem **lista);
 void initElem(Elem **lista);
-void readJump(int urg);
+
+/* Funções de manipulação dos dados na lista */
 void writeToElem(Info_t info);
+void readJump(int urg);
 void readElem(Info_t info, FILE *lidosF);
-void exitOperations(Elem **lista, FILE **arquivos);
 void printElemFile(FILE *lidosF);
+
+/* Função de limpeza do programa (garbage collector) */
+void exitOperations(Elem **lista, FILE **arquivos);
 
 int main() {
     Elem *lista = NULL;
-    initLista(&lista);
-    writePointer = readPointer = lista;
+    int error_status;
 
+    /* Abre os arquivos necessários */
     FILE *arquivos[] = {
         fopen( "pacotes.dat", "r" ),
         fopen( "lidos.dat", "w" ),
     };
 
-    readFile(&lista, arquivos);
+    /* Inicia a lista */
+    initLista(&lista);
 
+    /* Aponta os pointeiros de inserção e remoção para o
+       novo começo da lista */
+    writePointer = readPointer = lista;
+
+
+    /* Faz toda a manipulação do arquivo e recebe 1 se
+       ocorreu algum problema */
+    error_status = readFile(&lista, arquivos);
+
+    /* Após toda manipulação ocorrer, libera toda memórias
+       alocadas */
     exitOperations(&lista, arquivos);
+
+    return error_status;
 }
 
-void readFile(Elem **lista, FILE **arquivos) {
+
+/* Função que manda ler cada linha do arquivo e determina
+   o que fazer a partir do primeiro número da linha */
+int readFile(Elem **lista, FILE **arquivos) {
     Info_t lineInfo;
 
-    char line[32];
+    char32_t line;
     FILE *pacotesF = arquivos[0];
     FILE *lidosF = arquivos[1];
 
-
     while (1) {
+        /* Lê uma linha e analisa os dados dela */
         fgets(line, sizeof(line), pacotesF);
         lineInfo = getLineInfo(line);
 
+        /* Se chegou na linha com a palavra NULL, a função
+           finaliza sem erro */
         if (strcmp(lineInfo.pal, "NULL") == 0 ) {
-            exit(0);
+            return 0;
         }
 
         switch (lineInfo.cmd) {
+            /* Quando o número é 0, inserir dados */
             case INSERT:
                 writeToElem(lineInfo);
                 break;
+            /* Quando o número é 1, "remover" dados */
             case DELETE:
                 readElem(lineInfo, lidosF);
                 break;
+            /* Caso contrário, o arquivo está com informações
+               errôneas */
             default:
             printf("Comando errado\n");
-            exit(1);
+            return 1;
         }
     }
 }
 
+
+
+/* Faz um loop para criar 40 elementos de uma lista */
+void initLista(Elem **lista) {
+    for( int i=0; i<MAX_ELEMS; i++) {
+        initElem(lista);
+    }
+}
+
+
+/* Aloca memória e arruma para que o último da lista aponte
+   para o primeiro */
 void initElem(Elem **lista){
   Elem *elem;
 
@@ -94,12 +141,9 @@ void initElem(Elem **lista){
   *lista = elem;
 }
 
-void initLista(Elem **lista) {
-    for( int i=0; i<MAX_ELEMS; i++) {
-        initElem(lista);
-    }
-}
 
+/* Le uma linha e preenche as informações em uma struct,
+   retornando essa struct */
 Info_t getLineInfo(char *line) {
     Info_t lineInfo;
     sscanf(line, "%d %s %d",
@@ -110,10 +154,9 @@ Info_t getLineInfo(char *line) {
     return lineInfo;
 }
 
-void printElemFile(FILE *lidosF) {
-    fprintf(lidosF, "%s\n", readPointer->pal);
-}
 
+/* Pega as informações de uma linha de pacotes.dat e insere
+   em um elemento da lista */
 void writeToElem(Info_t info) {
     strcpy(writePointer->pal, info.pal);
     writePointer->urg = info.urg;
@@ -121,14 +164,10 @@ void writeToElem(Info_t info) {
     writePointer = writePointer->prox;
 }
 
-void readJump(int urg) {
-    for (int i=0; i<urg; i++) {
-        if (readPointer != writePointer) {
-            readPointer = readPointer->prox;
-        }
-    }
-}
 
+/* Faz o ato de verificar se a palavra é "PRTY", se sim
+   pula "urg" vezes. Após pular ou não,printa a palavra
+   do elemento que readPointer aponta para o arquivo lidos.dat */
 void readElem(Info_t info, FILE *lidosF) {
     if (readPointer != writePointer) {
         if (strcmp(info.pal, "PRTY") == 0) {
@@ -139,10 +178,29 @@ void readElem(Info_t info, FILE *lidosF) {
     }
 }
 
+
+/* Faz o ato de imprimir a palavra no arquivo lidos.dat */
+void printElemFile(FILE *lidosF) {
+    fprintf(lidosF, "%s\n", readPointer->pal);
+}
+
+
+/* Faz o ato do readPointer pular de elemento urg vezes */
+void readJump(int urg) {
+    for (int i=0; i<urg; i++) {
+        if (readPointer != writePointer) {
+            readPointer = readPointer->prox;
+        }
+    }
+}
+
+
+/* Função que fecha os arquivos e da free() em toda a lista */
 void exitOperations(Elem **lista, FILE **arquivos) {
     Elem *aux, *temp;
+    int qtdFiles = sizeof(*arquivos) / sizeof(FILE *);
 
-    for (int i=0; i<sizeof(arquivos); i++) {
+    for (int i=0; i<qtdFiles; i++) {
         fclose(arquivos[i]);
     }
 
