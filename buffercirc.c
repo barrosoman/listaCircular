@@ -56,6 +56,11 @@ int main() {
         fopen( "lidos.dat", "w" ),
     };
 
+    if (arquivos[0] == NULL) {
+        printf("Arquivo pacotes.dat não existe.\n");
+        return 1;
+    }
+
     /* Inicia a lista */
     initLista(&lista);
 
@@ -158,6 +163,9 @@ Info_t getLineInfo(char *line) {
 /* Pega as informações de uma linha de pacotes.dat e insere
    em um elemento da lista */
 void writeToElem(Info_t info) {
+    if (writePointer->prox == readPointer) {
+        return;
+    }
     strcpy(writePointer->pal, info.pal);
     writePointer->urg = info.urg;
 
@@ -169,9 +177,12 @@ void writeToElem(Info_t info) {
    pula "urg" vezes. Após pular ou não,printa a palavra
    do elemento que readPointer aponta para o arquivo lidos.dat */
 void readElem(Info_t info, FILE *lidosF) {
+    /* if (readPointer->prox != writePointer) { */
     if (readPointer != writePointer) {
-        if (strcmp(info.pal, "PRTY") == 0) {
-            readJump(info.urg);
+        if (strcmp(readPointer->pal, "PRTY") == 0) {
+            printElemFile(lidosF);
+            readJump(readPointer->urg);
+            return;
         }
         printElemFile(lidosF);
         readJump(1);
@@ -188,6 +199,7 @@ void printElemFile(FILE *lidosF) {
 /* Faz o ato do readPointer pular de elemento urg vezes */
 void readJump(int urg) {
     for (int i=0; i<urg; i++) {
+        /* if (readPointer->prox != writePointer) { */
         if (readPointer != writePointer) {
             readPointer = readPointer->prox;
         }
