@@ -1,6 +1,6 @@
 # listaCircular
 
-* 4º trabalho professor ALeardo
+* 4º trabalho LATPII
 *
 
 ## Dados
