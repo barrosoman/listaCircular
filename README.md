@@ -26,6 +26,6 @@ A execução do programa termina ao chegar na linha contendo a string NULL.
 
 A saída de seu programa deve ser um arquivo, chamado  lidos.dat, contendo todas as palavras "removidas" durante a execução, uma por linha do arquivo.
 
-ARQUIVO DE ENTRADA: pacotes.dat
-ARQUIVO DE SAÍDA:        lidos.dat
-ARQUIVO COM CÓDIGO FONTE:    buffercirc.c
+* ARQUIVO DE ENTRADA:         pacotes.dat
+* ARQUIVO DE SAÍDA:           lidos.dat
+* ARQUIVO COM CÓDIGO FONTE:   buffercirc.c
