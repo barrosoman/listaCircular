@@ -1,7 +1,6 @@
 # listaCircular
 
 * 4º trabalho LATPII
-*
 
 ## Dados
 Implemente uma lista circular com tamanho fixo (40 elementos) em que são inseridas e "removidas" palavras. Os elementos armazenados devem ter a seguinte estrutura:
